@@ -9,16 +9,8 @@ const firebaseConfig = {
     appId: "1:486156336414:web:ba234c2f894ff838489d0f"
 };
 
-// 初始化 Firebase (加上防呆機制)
-let database;
-if (typeof firebase !== 'undefined') {
-    firebase.initializeApp(firebaseConfig);
-    database = firebase.database();
-} else {
-    alert("Firebase 套件載入失敗！請確認 index.html 順序或網路連線。");
-}
-
-// 9x9 踩地雷遊戲設定
+// 全域變數宣告
+let database = null;
 const BOARD_SIZE = 9;
 const MINE_COUNT = 10;
 
@@ -34,7 +26,7 @@ let timerInterval = null;
 let secondsElapsed = 0;
 let isTimerRunning = false;
 
-// DOM 元素
+// DOM 元素快取
 const boardEl = document.getElementById('minesweeper-board');
 const gameStatusEl = document.getElementById('game-status');
 const mineCountEl = document.getElementById('mine-count');
@@ -48,7 +40,24 @@ const playerNameInput = document.getElementById('player-name-input');
 const submitScoreBtn = document.getElementById('submit-score-btn');
 const leaderboardList = document.getElementById('leaderboard-list');
 
-// 初始化遊戲
+// 💡 終極安全啟動：等待網頁全部元素與 Firebase 套件都下載完畢，才執行初始化
+window.onload = function() {
+    // 檢查 Firebase 是否成功載入
+    if (typeof firebase !== 'undefined') {
+        firebase.initializeApp(firebaseConfig);
+        database = firebase.database();
+        startLeaderboardListener(); // 啟動雲端排行榜監聽
+    } else {
+        // 如果真的沒載入成功，默默在主控台記錄，不彈出破壞體驗的警報視窗
+        console.error("Firebase 套件未成功載入，將切換為單機無排行模式。");
+        leaderboardList.innerHTML = '<li>⚠️ 雲端連線失敗，目前為單機模式</li>';
+    }
+    
+    // 無論雲端成功與否，都要把 9x9 棋盤完美畫出來
+    initGame();
+};
+
+// 初始化遊戲棋盤
 function initGame() {
     board = [];
     mines.clear();
@@ -205,7 +214,7 @@ function endGame(isWin) {
     if (isWin) {
         gameResultTitle.textContent = "🎉 順利通關！";
         gameResultText.textContent = `曾棒棒太厲害了！你花費了 ${secondsElapsed} 秒成功拆除所有地雷！`;
-        uploadScoreZone.classList.remove('hidden');
+        if (database) uploadScoreZone.classList.remove('hidden'); // 只有雲端連線成功時才顯示上傳按鈕
     } else {
         gameResultTitle.textContent = "💥 💥 爆炸啦！";
         gameResultText.textContent = "很遺憾，你踩到地雷了。再接再厲！";
@@ -266,9 +275,3 @@ function startLeaderboardListener() {
 }
 
 restartBtn.addEventListener('click', initGame);
-
-// 網頁載入完成後啟動遊戲與排行榜監聽
-window.onload = () => {
-    initGame();
-    startLeaderboardListener();
-};
