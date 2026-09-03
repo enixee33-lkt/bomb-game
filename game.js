@@ -40,24 +40,23 @@ const playerNameInput = document.getElementById('player-name-input');
 const submitScoreBtn = document.getElementById('submit-score-btn');
 const leaderboardList = document.getElementById('leaderboard-list');
 
-// 💡 終極安全啟動：等待網頁全部元素與 Firebase 套件都下載完畢，才執行初始化
+// 網頁載入完成後啟動
 window.onload = function() {
-    // 檢查 Firebase 是否成功載入
+    // 檢查 Firebase 是否成功下載載入
     if (typeof firebase !== 'undefined') {
         firebase.initializeApp(firebaseConfig);
         database = firebase.database();
-        startLeaderboardListener(); // 啟動雲端排行榜監聽
+        startLeaderboardListener(); // 啟動雲端排行榜即時監聽
+        console.log("Firebase 雲端初始化成功！");
     } else {
-        // 如果真的沒載入成功，默默在主控台記錄，不彈出破壞體驗的警報視窗
         console.error("Firebase 套件未成功載入，將切換為單機無排行模式。");
         leaderboardList.innerHTML = '<li>⚠️ 雲端連線失敗，目前為單機模式</li>';
     }
     
-    // 無論雲端成功與否，都要把 9x9 棋盤完美畫出來
+    // 初始化 9x9 棋盤
     initGame();
 };
 
-// 初始化遊戲棋盤
 function initGame() {
     board = [];
     mines.clear();
@@ -214,7 +213,7 @@ function endGame(isWin) {
     if (isWin) {
         gameResultTitle.textContent = "🎉 順利通關！";
         gameResultText.textContent = `曾棒棒太厲害了！你花費了 ${secondsElapsed} 秒成功拆除所有地雷！`;
-        if (database) uploadScoreZone.classList.remove('hidden'); // 只有雲端連線成功時才顯示上傳按鈕
+        if (database) uploadScoreZone.classList.remove('hidden');
     } else {
         gameResultTitle.textContent = "💥 💥 爆炸啦！";
         gameResultText.textContent = "很遺憾，你踩到地雷了。再接再厲！";
@@ -231,7 +230,6 @@ function endGame(isWin) {
     gameOverModal.classList.remove('hidden');
 }
 
-// 💾 雲端功能：將玩家秒數上傳至 Firebase
 submitScoreBtn.addEventListener('click', () => {
     if (!database) return;
     const name = playerNameInput.value.trim();
@@ -251,7 +249,6 @@ submitScoreBtn.addEventListener('click', () => {
     });
 });
 
-// ⏳ 雲端功能：即時監聽並更新踩地雷排行榜
 function startLeaderboardListener() {
     if (!database) return;
     database.ref('minesweeper_scores').orderByChild('score').limitToFirst(10).on('value', (snapshot) => {
@@ -275,3 +272,4 @@ function startLeaderboardListener() {
 }
 
 restartBtn.addEventListener('click', initGame);
+
