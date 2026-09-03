@@ -44,10 +44,10 @@
         </div>
     </div>
 
-    <!-- 💡 使用 cdnjs 國際加速源，並確保在 game.js 之前完全載入 -->
+    <!-- 💡 核心修正：之前可能漏掉的官方全功能整合包下載網址 -->
     <script src="https://cloudflare.com"></script>
-    <script src="https://cloudflare.com"></script>
-    <!-- 加上時間戳，百分之百跳過任何瀏覽器快取 -->
-    <script src="game.js?v=2.0"></script>
+    
+    <!-- 加上時間戳版本號，徹底強制瀏覽器刷新，不吃舊快取 -->
+    <script src="game.js?v=3.0"></script>
 </body>
 </html>
