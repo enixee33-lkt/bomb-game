@@ -1,12 +1,12 @@
 // ⚠️ 重要：請將下方的設定值替換成你在 Firebase 控制台獲得的專屬程式碼
 const firebaseConfig = {
-    apiKey: "AIzaSyA92tY9X4za5ScTXgoVyfApy34aPb-m9sg",
-    authDomain: "bomb-game-f61cf.firebaseapp.com",
-    databaseURL: "https://bomb-game-f61cf-default-rtdb.firebaseio.com",
-    projectId: "bomb-game-f61cf",
-    storageBucket: "bomb-game-f61cf.firebasestorage.app",
-    messagingSenderId: "486156336414",
-    appId: "1:486156336414:web:ba234c2f894ff838489d0f"
+  authDomain: "bomb-game-f61cf.firebaseapp.com",
+  databaseURL: "https://bomb-game-f61cf-default-rtdb.firebaseio.com",
+  projectId: "bomb-game-f61cf",
+  storageBucket: "bomb-game-f61cf.firebasestorage.app",
+  messagingSenderId: "486156336414",
+  appId: "1:486156336414:web:ba234c2f894ff838489d0f",
+  measurementId: "G-QCF89QNDSR"   
 };
 
 // 全域變數宣告
