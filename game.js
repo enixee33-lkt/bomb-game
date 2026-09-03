@@ -9,9 +9,14 @@ const firebaseConfig = {
     appId: "1:486156336414:web:ba234c2f894ff838489d0f"
 };
 
-// 初始化 Firebase
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
+// 初始化 Firebase (加上防呆機制)
+let database;
+if (typeof firebase !== 'undefined') {
+    firebase.initializeApp(firebaseConfig);
+    database = firebase.database();
+} else {
+    alert("Firebase 套件載入失敗！請確認 index.html 順序或網路連線。");
+}
 
 // 9x9 踩地雷遊戲設定
 const BOARD_SIZE = 9;
@@ -52,7 +57,6 @@ function initGame() {
     isGameOver = false;
     hasUploadedThisGame = false;
     
-    // 重置計時器
     clearInterval(timerInterval);
     secondsElapsed = 0;
     isTimerRunning = false;
@@ -63,7 +67,6 @@ function initGame() {
     uploadScoreZone.classList.add('hidden');
     gameStatusEl.textContent = "遊戲開始！小心不要踩到地雷。";
 
-    // 建立 9x9 乾淨棋盤與格子
     boardEl.innerHTML = '';
     for (let r = 0; r < BOARD_SIZE; r++) {
         board[r] = [];
@@ -73,9 +76,7 @@ function initGame() {
             cellEl.dataset.row = r;
             cellEl.dataset.col = c;
 
-            // 綁定左鍵點擊 (翻開)
             cellEl.addEventListener('click', () => handleCellClick(r, c));
-            // 綁定右鍵點擊 (插旗防爆)
             cellEl.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 handleCellRightClick(r, c);
@@ -92,7 +93,6 @@ function initGame() {
         }
     }
 
-    // 隨機佈置 10 顆地雷
     let plantedMines = 0;
     while (plantedMines < MINE_COUNT) {
         const r = Math.floor(Math.random() * BOARD_SIZE);
@@ -106,12 +106,10 @@ function initGame() {
         }
     }
 
-    // 計算每個格子周圍的地雷數
     for (let r = 0; r < BOARD_SIZE; r++) {
         for (let c = 0; c < BOARD_SIZE; c++) {
             if (board[r][c].isMine) continue;
             let count = 0;
-            // 搜尋周圍八個方位
             for (let dr = -1; dr <= 1; dr++) {
                 for (let dc = -1; dc <= 1; dc++) {
                     const nr = r + dr;
@@ -126,7 +124,6 @@ function initGame() {
     }
 }
 
-// 啟動計時器
 function startTimer() {
     isTimerRunning = true;
     timerInterval = setInterval(() => {
@@ -135,33 +132,27 @@ function startTimer() {
     }, 1000);
 }
 
-// 左鍵翻開格子
 function handleCellClick(r, c) {
     if (isGameOver) return;
     const cell = board[r][c];
     if (cell.isRevealed || cell.isFlagged) return;
 
-    // 玩家第一次點擊時，啟動計時器
     if (!isTimerRunning) {
         startTimer();
     }
 
-    // 💥 踩到地雷，遊戲結束
     if (cell.isMine) {
         endGame(false);
         return;
     }
 
-    // 翻開安全格子
     revealCell(r, c);
 
-    // 🎉 檢查是否將所有安全格子都翻開了 (9x9 - 10顆雷 = 71個安全格)
     if (revealedCount === (BOARD_SIZE * BOARD_SIZE - MINE_COUNT)) {
         endGame(true);
     }
 }
 
-// 遞迴翻開格子 (如果周圍地雷是 0，會連鎖自動展開)
 function revealCell(r, c) {
     const cell = board[r][c];
     if (cell.isRevealed || cell.isFlagged) return;
@@ -174,7 +165,6 @@ function revealCell(r, c) {
         cell.element.textContent = cell.neighborMines;
         cell.element.setAttribute('data-count', cell.neighborMines);
     } else {
-        // 周圍無雷，自動連鎖翻開八個方向
         for (let dr = -1; dr <= 1; dr++) {
             for (let dc = -1; dc <= 1; dc++) {
                 const nr = r + dr;
@@ -187,7 +177,6 @@ function revealCell(r, c) {
     }
 }
 
-// 右鍵插旗或取消插旗
 function handleCellRightClick(r, c) {
     if (isGameOver) return;
     const cell = board[r][c];
@@ -209,7 +198,6 @@ function handleCellRightClick(r, c) {
     mineCountEl.textContent = Math.max(0, MINE_COUNT - flaggedCount);
 }
 
-// 遊戲結束判定邏輯
 function endGame(isWin) {
     isGameOver = true;
     clearInterval(timerInterval);
@@ -217,12 +205,11 @@ function endGame(isWin) {
     if (isWin) {
         gameResultTitle.textContent = "🎉 順利通關！";
         gameResultText.textContent = `曾棒棒太厲害了！你花費了 ${secondsElapsed} 秒成功拆除所有地雷！`;
-        uploadScoreZone.classList.remove('hidden'); // 贏了才可以上傳秒數排行榜
+        uploadScoreZone.classList.remove('hidden');
     } else {
         gameResultTitle.textContent = "💥 💥 爆炸啦！";
         gameResultText.textContent = "很遺憾，你踩到地雷了。再接再厲！";
         
-        // 翻開所有地雷讓玩家看
         for (let r = 0; r < BOARD_SIZE; r++) {
             for (let c = 0; c < BOARD_SIZE; c++) {
                 if (board[r][c].isMine) {
@@ -237,13 +224,14 @@ function endGame(isWin) {
 
 // 💾 雲端功能：將玩家秒數上傳至 Firebase
 submitScoreBtn.addEventListener('click', () => {
+    if (!database) return;
     const name = playerNameInput.value.trim();
     if (!name) { alert("請輸入名字再上傳！"); return; }
     if (hasUploadedThisGame) return;
 
     database.ref('minesweeper_scores').push({
         name: name,
-        score: secondsElapsed, // 踩地雷排行榜比的是少秒數
+        score: secondsElapsed,
         timestamp: Date.now()
     }).then(() => {
         alert("通關紀錄上傳成功！");
@@ -254,25 +242,33 @@ submitScoreBtn.addEventListener('click', () => {
     });
 });
 
-// ⏳ 雲端功能：即時監聽並更新踩地雷排行榜 (最少秒數排在最上面)
-database.ref('minesweeper_scores').orderByChild('score').limitToFirst(10).on('value', (snapshot) => {
-    const scores = [];
-    snapshot.forEach((childSnapshot) => {
-        scores.push(childSnapshot.val());
-    });
+// ⏳ 雲端功能：即時監聽並更新踩地雷排行榜
+function startLeaderboardListener() {
+    if (!database) return;
+    database.ref('minesweeper_scores').orderByChild('score').limitToFirst(10).on('value', (snapshot) => {
+        const scores = [];
+        snapshot.forEach((childSnapshot) => {
+            scores.push(childSnapshot.val());
+        });
 
-    leaderboardList.innerHTML = '';
-    if (scores.length === 0) {
-        leaderboardList.innerHTML = '<li>目前還沒有速通紀錄</li>';
-        return;
-    }
-    
-    scores.forEach((item, index) => {
-        const li = document.createElement('li');
-        li.innerHTML = `<span>No.${index + 1} ${item.name}</span> <span>⏱️ ${item.score} 秒</span>`;
-        leaderboardList.appendChild(li);
+        leaderboardList.innerHTML = '';
+        if (scores.length === 0) {
+            leaderboardList.innerHTML = '<li>目前還沒有速通紀錄</li>';
+            return;
+        }
+        
+        scores.forEach((item, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>No.${index + 1} ${item.name}</span> <span>⏱️ ${item.score} 秒</span>`;
+            leaderboardList.appendChild(li);
+        });
     });
-});
+}
 
 restartBtn.addEventListener('click', initGame);
-window.onload = initGame;
+
+// 網頁載入完成後啟動遊戲與排行榜監聽
+window.onload = () => {
+    initGame();
+    startLeaderboardListener();
+};
