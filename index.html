@@ -7,10 +7,6 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- 載入 Firebase 核心套件 -->
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
-
     <div class="game-container">
         <header>
             <h1>💣 曾棒棒踩地雷 💣</h1>
@@ -37,7 +33,7 @@
                 <h2 id="game-result-title">遊戲結束</h2>
                 <p id="game-result-text">勝負揭曉</p>
                 
-                <!-- 分數上傳區（只有贏的時候會秀出，紀錄通關秒數） -->
+                <!-- 分數上傳區 -->
                 <div id="upload-score-zone" class="hidden">
                     <input type="text" id="player-name-input" placeholder="輸入你的大名" maxLength="10">
                     <button id="submit-score-btn">📤 上傳通關紀錄</button>
@@ -48,13 +44,9 @@
         </div>
     </div>
 
-    <!-- 1. 必須先載入 Firebase 核心 (這行要在最前面) -->
+    <!-- 💡 注意：Firebase 與 game.js 移到這裡，順序絕對不能錯 -->
     <script src="https://gstatic.com"></script>
-    
-    <!-- 2. 再載入資料庫模組 -->
     <script src="https://gstatic.com"></script>
-
-    <!-- 3. 最後、最後才能載入你自己的遊戲大腦 game.js -->
     <script src="game.js"></script>
 </body>
 </html>
