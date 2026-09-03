@@ -1,7 +1,7 @@
 // ⚠️ 重要：請將下方的設定值替換成你在 Firebase 控制台獲得的專屬程式碼
 const firebaseConfig = {
   authDomain: "bomb-game-f61cf.firebaseapp.com",
-  databaseURL: "https://bomb-game-f61cf-default-rtdb.firebaseio.com",
+  //databaseURL: "https://bomb-game-f61cf-default-rtdb.firebaseio.com",
   projectId: "bomb-game-f61cf",
   storageBucket: "bomb-game-f61cf.firebasestorage.app",
   messagingSenderId: "486156336414",
