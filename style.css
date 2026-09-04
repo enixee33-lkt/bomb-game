@@ -64,6 +64,7 @@ h1 {
 }
 
 /* 排行榜樣式（畫面右側） */
+/* 排行榜樣式（畫面右側）- 修正長度與棋盤齊平並支援下拉滾動 */
 .leaderboard-section {
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid #ff4757;
@@ -75,7 +76,10 @@ h1 {
     max-width: 320px;
     display: flex;
     flex-direction: column;
-    min-height: 0;
+    
+    /* 💡 核心修改：使高度與棋盤Wrapper大約齊平，並設定最大高度防止拉長 */
+    height: 375px; 
+    max-height: 375px; 
 }
 .leaderboard-section h3 { color: #ffa502; margin-bottom: 10px; font-size: 0.95rem; line-height: 1.4; }
 #leaderboard-list {
@@ -83,10 +87,14 @@ h1 {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    overflow-y: auto;
+    
+    /* 💡 核心修改：當排名變多太長時，自動轉為區塊內部的下拉式滾動條 */
+    overflow-y: auto; 
     flex: 1;
     text-align: left;
+    padding-right: 4px; /* 給滾動條留點空間 */
 }
+
 #leaderboard-list li {
     background: rgba(255,255,255,0.04);
     padding: 4px 10px;
