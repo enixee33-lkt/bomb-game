@@ -1,4 +1,17 @@
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyA92tY9X4za5ScTXgoVyfApy34aPb-m9sg",
+  authDomain: "://firebaseapp.com",
+  databaseURL: "https://bomb-game-f61cf-default-rtdb.firebaseio.com",
+  projectId: "bomb-game-f61cf",
+  storageBucket: "bomb-game-f61cf.firebasestorage.app",
+  messagingSenderId: "486156336414",
+  appId: "1:486156336414:web:ba234c2f894ff838489d0f",
+  measurementId: "G-QCF89QNDSR"
+};
+
 // 全域變數宣告
+let database = null;
 const BOARD_SIZE = 9;
 const MINE_COUNT = 10;
 
@@ -26,14 +39,22 @@ const restartBtn = document.getElementById('restart-btn');
 const uploadScoreZone = document.getElementById('upload-score-zone');
 const playerNameInput = document.getElementById('player-name-input');
 const submitScoreBtn = document.getElementById('submit-score-btn');
+const leaderboardList = document.getElementById('leaderboard-list');
 
-// 網頁載入完成後啟動
 // 網頁載入完成後啟動
 window.onload = function() {
-    // 💡 修正：移除 initFirebase() 的呼叫，直接初始化棋盤即可
+    if (typeof firebase !== 'undefined') {
+        firebase.initializeApp(firebaseConfig);
+        database = firebase.database();
+        startLeaderboardListener(); // 啟動雲端排行榜即時監聽
+        console.log("Firebase 雲端初始化成功！");
+    } else {
+        console.error("Firebase 套件未成功載入，將切換為單機無排行模式。");
+        leaderboardList.innerHTML = '<li>⚠️ 雲端連線失敗，目前為單機模式</li>';
+    }
+    
     initGame();
 };
-
 
 function initGame() {
     board = [];
@@ -191,8 +212,7 @@ function endGame(isWin) {
     if (isWin) {
         gameResultTitle.textContent = "🎉 順利通關！";
         gameResultText.textContent = `曾棒棒太厲害了！你花費了 ${secondsElapsed} 秒成功拆除所有地雷！`;
-        // 如果有成功初始化 Firebase 且 database 存在，才顯示上傳區域
-        if (typeof database !== 'undefined' && database) uploadScoreZone.classList.remove('hidden');
+        if (database) uploadScoreZone.classList.remove('hidden');
     } else {
         gameResultTitle.textContent = "💥 💥 爆炸啦！";
         gameResultText.textContent = "很遺憾，你踩到地雷了。再接再厲！";
@@ -209,25 +229,49 @@ function endGame(isWin) {
     gameOverModal.classList.remove('hidden');
 }
 
-// 綁定上傳按鈕點擊事件
 submitScoreBtn.addEventListener('click', () => {
+    if (!database) return;
     const name = playerNameInput.value.trim();
     if (!name) { alert("請輸入名字再上傳！"); return; }
     if (hasUploadedThisGame) return;
 
-    // 呼叫引入的 Firebase 上傳功能
-    if (typeof uploadScore === 'function') {
-        uploadScore(name, secondsElapsed, (success) => {
-            if (success) {
-                alert("通關紀錄上傳成功！");
-                uploadScoreZone.classList.add('hidden');
-                hasUploadedThisGame = true;
-            }
-        });
-    }
+    database.ref('minesweeper_scores').push({
+        name: name,
+        score: secondsElapsed,
+        timestamp: Date.now()
+    }).then(() => {
+        alert("通關紀錄上傳成功！");
+        uploadScoreZone.classList.add('hidden');
+        hasUploadedThisGame = true;
+    }).catch((error) => {
+        console.error("上傳失敗:", error);
+    });
 });
 
-// 重新開始按鈕事件
+function startLeaderboardListener() {
+    if (!database) return;
+    database.ref('minesweeper_scores').orderByChild('score').limitToFirst(10).on('value', (snapshot) => {
+        const scores = [];
+        snapshot.forEach((childSnapshot) => {
+            scores.push(childSnapshot.val());
+        });
+
+        leaderboardList.innerHTML = '';
+        if (scores.length === 0) {
+            leaderboardList.innerHTML = '<li>目前還沒有速通紀錄</li>';
+            return;
+        }
+        
+        // 💡 補齊被字數切斷的渲染邏輯，讓排行榜完美呈現
+        scores.forEach((item, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>No.${index + 1} ${item.name}</span> <span>${item.score} 秒</span>`;
+            leaderboardList.appendChild(li);
+        });
+    });
+}
+
+// 綁定重新開始按鈕
 if (restartBtn) {
     restartBtn.addEventListener('click', initGame);
 }
