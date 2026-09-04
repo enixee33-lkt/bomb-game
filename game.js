@@ -213,13 +213,46 @@ function endGame(isWin) {
     isGameOver = true;
     clearInterval(timerInterval);
 
+    // 預設先隱藏上傳區和重來按鈕，由後面邏輯精準判斷顯示
+    uploadScoreZone.classList.add('hidden');
+    restartBtn.classList.add('hidden');
+
     if (isWin) {
         gameResultTitle.textContent = "🎉 順利通關！";
-        gameResultText.textContent = `曾棒棒太厲害了！你花費了 ${secondsElapsed} 秒成功拆除所有地雷！`;
-        if (database) uploadScoreZone.classList.remove('hidden');
+        
+        // 💡 需求 3 & 4：判斷是否有資格進前 20 名
+        if (database) {
+            // 從雲端抓取目前第 20 名（最後一名）的分數
+            database.ref('minesweeper_scores').orderByChild('score').limitToFirst(20).once('value', (snapshot) => {
+                let scoresCount = snapshot.numChildren();
+                let lastPlaceScore = 999999; // 預設一個極大值
+                
+                snapshot.forEach((childSnapshot) => {
+                    lastPlaceScore = childSnapshot.val().score; // 撈出目前最後一名的秒數
+                });
+
+                // 條件：排行榜未滿 20 人，或者你的秒數少於（快於）目前第 20 名
+                if (scoresCount < 20 || secondsElapsed < lastPlaceScore) {
+                    // 🎯 需求 3：在前 20 名，顯示上傳區，並隱藏重來按鈕防止誤按
+                    gameResultText.textContent = `曾棒棒太厲害了！你花費了 ${secondsElapsed} 秒成功拆除所有地雷，並榮登世界排行榜！請輸入大名上傳。`;
+                    uploadScoreZone.classList.remove('hidden');
+                } else {
+                    // 🎯 需求 4：沒進前 20 名，僅出現通關圖示與重來按鈕，隱藏上傳區
+                    gameResultText.textContent = `曾棒棒順利通關！你花費了 ${secondsElapsed} 秒。可惜差一點點就能擠進排行榜，再接再厲！`;
+                    restartBtn.classList.remove('hidden');
+                }
+            });
+        } else {
+            // 單機模式無連線，直接給重來按鈕
+            gameResultText.textContent = `曾棒棒通關成功！花費了 ${secondsElapsed} 秒！`;
+            restartBtn.classList.remove('hidden');
+        }
+
     } else {
+        // 🎯 需求 2：當踩到地雷失敗時，絕對不上傳，只出現重來按鈕
         gameResultTitle.textContent = "💥 💥 爆炸啦！";
         gameResultText.textContent = "很遺憾，你踩到地雷了。再接再厲！";
+        restartBtn.classList.remove('hidden'); // 只顯示重來按鈕
         
         for (let r = 0; r < BOARD_SIZE; r++) {
             for (let c = 0; c < BOARD_SIZE; c++) {
@@ -232,6 +265,7 @@ function endGame(isWin) {
     }
     gameOverModal.classList.remove('hidden');
 }
+
 
 submitScoreBtn.addEventListener('click', () => {
     if (!database) return;
@@ -247,10 +281,14 @@ submitScoreBtn.addEventListener('click', () => {
         alert("通關紀錄上傳成功！");
         uploadScoreZone.classList.add('hidden');
         hasUploadedThisGame = true;
+        
+        // 💡 核心新增：當成績成功上傳後，將隱藏的「重來按鈕」重新秀出來，讓玩家可以繼續下一局
+        restartBtn.classList.remove('hidden');
     }).catch((error) => {
         console.error("上傳失敗:", error);
     });
 });
+
 
 function startLeaderboardListener() {
     if (!database) return;
