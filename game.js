@@ -1,10 +1,8 @@
-// ⚠️ 重要：請將下方的設定值替換成你在 Firebase 控制台獲得的專屬程式碼
 // Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyA92tY9X4za5ScTXgoVyfApy34aPb-m9sg",
-  authDomain: "bomb-game-f61cf.firebaseapp.com",
-  databaseURL: "https://bomb-game-f61cf-default-rtdb.firebaseio.com",
+  authDomain: "://firebaseapp.com",
+  databaseURL: "https://firebaseio.com",
   projectId: "bomb-game-f61cf",
   storageBucket: "bomb-game-f61cf.firebasestorage.app",
   messagingSenderId: "486156336414",
@@ -74,8 +72,11 @@ function initGame() {
     timerEl.textContent = '0';
     mineCountEl.textContent = MINE_COUNT;
 
+    // 💡 修正：每次開局重置彈窗與上傳區狀態，確保初始狀態乾淨
     gameOverModal.classList.add('hidden');
     uploadScoreZone.classList.add('hidden');
+    restartBtn.classList.remove('hidden'); // 確保按鈕處於預設狀態
+    
     gameStatusEl.textContent = "遊戲開始！小心不要踩到地雷。";
 
     boardEl.innerHTML = '';
@@ -213,37 +214,36 @@ function endGame(isWin) {
     isGameOver = true;
     clearInterval(timerInterval);
 
-    // 預設先隱藏上傳區和重來按鈕，由後面邏輯精準判斷顯示
+    // 💡 修正：每次結束先隱藏兩個區塊，由下方邏輯做精準分流顯示
     uploadScoreZone.classList.add('hidden');
     restartBtn.classList.add('hidden');
 
     if (isWin) {
         gameResultTitle.textContent = "🎉 順利通關！";
         
-        // 💡 需求 3 & 4：判斷是否有資格進前 20 名
         if (database) {
-            // 從雲端抓取目前第 20 名（最後一名）的分數
+            // 從雲端抓取目前第 20 名的分數
             database.ref('minesweeper_scores').orderByChild('score').limitToFirst(20).once('value', (snapshot) => {
                 let scoresCount = snapshot.numChildren();
-                let lastPlaceScore = 999999; // 預設一個極大值
+                let lastPlaceScore = 999999;
                 
                 snapshot.forEach((childSnapshot) => {
-                    lastPlaceScore = childSnapshot.val().score; // 撈出目前最後一名的秒數
+                    lastPlaceScore = childSnapshot.val().score;
                 });
 
-                // 條件：排行榜未滿 20 人，或者你的秒數少於（快於）目前第 20 名
+                // 條件：排行榜未滿 20 人，或者你的秒數快於目前第 20 名
                 if (scoresCount < 20 || secondsElapsed < lastPlaceScore) {
                     // 🎯 需求 3：在前 20 名，顯示上傳區，並隱藏重來按鈕防止誤按
                     gameResultText.textContent = `曾棒棒太厲害了！你花費了 ${secondsElapsed} 秒成功拆除所有地雷，並榮登世界排行榜！請輸入大名上傳。`;
                     uploadScoreZone.classList.remove('hidden');
                 } else {
-                    // 🎯 需求 4：沒進前 20 名，僅出現通關圖示與重來按鈕，隱藏上傳區
+                    // 🎯 需求 4：沒進前 20 名，顯示過關訊息與重來按鈕，隱藏上傳區
                     gameResultText.textContent = `曾棒棒順利通關！你花費了 ${secondsElapsed} 秒。可惜差一點點就能擠進排行榜，再接再厲！`;
                     restartBtn.classList.remove('hidden');
                 }
             });
         } else {
-            // 單機模式無連線，直接給重來按鈕
+            // 單機無雲端模式
             gameResultText.textContent = `曾棒棒通關成功！花費了 ${secondsElapsed} 秒！`;
             restartBtn.classList.remove('hidden');
         }
@@ -252,7 +252,7 @@ function endGame(isWin) {
         // 🎯 需求 2：當踩到地雷失敗時，絕對不上傳，只出現重來按鈕
         gameResultTitle.textContent = "💥 💥 爆炸啦！";
         gameResultText.textContent = "很遺憾，你踩到地雷了。再接再厲！";
-        restartBtn.classList.remove('hidden'); // 只顯示重來按鈕
+        restartBtn.classList.remove('hidden'); // 強制只秀出重來按鈕
         
         for (let r = 0; r < BOARD_SIZE; r++) {
             for (let c = 0; c < BOARD_SIZE; c++) {
@@ -265,7 +265,6 @@ function endGame(isWin) {
     }
     gameOverModal.classList.remove('hidden');
 }
-
 
 submitScoreBtn.addEventListener('click', () => {
     if (!database) return;
@@ -282,13 +281,12 @@ submitScoreBtn.addEventListener('click', () => {
         uploadScoreZone.classList.add('hidden');
         hasUploadedThisGame = true;
         
-        // 💡 核心新增：當成績成功上傳後，將隱藏的「重來按鈕」重新秀出來，讓玩家可以繼續下一局
+        // 💡 核心修正：當成績上傳完畢後，把原本隱藏的重來按鈕叫出來，讓玩家可以繼續下一局
         restartBtn.classList.remove('hidden');
     }).catch((error) => {
         console.error("上傳失敗:", error);
     });
 });
-
 
 function startLeaderboardListener() {
     if (!database) return;
@@ -313,4 +311,3 @@ function startLeaderboardListener() {
 }
 
 restartBtn.addEventListener('click', initGame);
-
