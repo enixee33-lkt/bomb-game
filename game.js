@@ -1,19 +1,4 @@
-// ⚠️ 重要：請將下方的設定值替換成你在 Firebase 控制台獲得的專屬程式碼
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyA92tY9X4za5ScTXgoVyfApy34aPb-m9sg",
-  authDomain: "bomb-game-f61cf.firebaseapp.com",
-  databaseURL: "https://bomb-game-f61cf-default-rtdb.firebaseio.com",
-  projectId: "bomb-game-f61cf",
-  storageBucket: "bomb-game-f61cf.firebasestorage.app",
-  messagingSenderId: "486156336414",
-  appId: "1:486156336414:web:ba234c2f894ff838489d0f",
-  measurementId: "G-QCF89QNDSR"
-};
-
 // 全域變數宣告
-let database = null;
 const BOARD_SIZE = 9;
 const MINE_COUNT = 10;
 
@@ -41,21 +26,13 @@ const restartBtn = document.getElementById('restart-btn');
 const uploadScoreZone = document.getElementById('upload-score-zone');
 const playerNameInput = document.getElementById('player-name-input');
 const submitScoreBtn = document.getElementById('submit-score-btn');
-const leaderboardList = document.getElementById('leaderboard-list');
 
 // 網頁載入完成後啟動
 window.onload = function() {
-    // 檢查 Firebase 是否成功下載載入
-    if (typeof firebase !== 'undefined') {
-        firebase.initializeApp(firebaseConfig);
-        database = firebase.database();
-        startLeaderboardListener(); // 啟動雲端排行榜即時監聽
-        console.log("Firebase 雲端初始化成功！");
-    } else {
-        console.error("Firebase 套件未成功載入，將切換為單機無排行模式。");
-        leaderboardList.innerHTML = '<li>⚠️ 雲端連線失敗，目前為單機模式</li>';
+    // 呼叫引入的 Firebase 初始化功能
+    if (typeof initFirebase === 'function') {
+        initFirebase();
     }
-    
     // 初始化 9x9 棋盤
     initGame();
 };
@@ -216,7 +193,8 @@ function endGame(isWin) {
     if (isWin) {
         gameResultTitle.textContent = "🎉 順利通關！";
         gameResultText.textContent = `曾棒棒太厲害了！你花費了 ${secondsElapsed} 秒成功拆除所有地雷！`;
-        if (database) uploadScoreZone.classList.remove('hidden');
+        // 如果有成功初始化 Firebase 且 database 存在，才顯示上傳區域
+        if (typeof database !== 'undefined' && database) uploadScoreZone.classList.remove('hidden');
     } else {
         gameResultTitle.textContent = "💥 💥 爆炸啦！";
         gameResultText.textContent = "很遺憾，你踩到地雷了。再接再厲！";
@@ -233,46 +211,25 @@ function endGame(isWin) {
     gameOverModal.classList.remove('hidden');
 }
 
+// 綁定上傳按鈕點擊事件
 submitScoreBtn.addEventListener('click', () => {
-    if (!database) return;
     const name = playerNameInput.value.trim();
     if (!name) { alert("請輸入名字再上傳！"); return; }
     if (hasUploadedThisGame) return;
 
-    database.ref('minesweeper_scores').push({
-        name: name,
-        score: secondsElapsed,
-        timestamp: Date.now()
-    }).then(() => {
-        alert("通關紀錄上傳成功！");
-        uploadScoreZone.classList.add('hidden');
-        hasUploadedThisGame = true;
-    }).catch((error) => {
-        console.error("上傳失敗:", error);
-    });
+    // 呼叫引入的 Firebase 上傳功能
+    if (typeof uploadScore === 'function') {
+        uploadScore(name, secondsElapsed, (success) => {
+            if (success) {
+                alert("通關紀錄上傳成功！");
+                uploadScoreZone.classList.add('hidden');
+                hasUploadedThisGame = true;
+            }
+        });
+    }
 });
 
-function startLeaderboardListener() {
-    if (!database) return;
-    database.ref('minesweeper_scores').orderByChild('score').limitToFirst(10).on('value', (snapshot) => {
-        const scores = [];
-        snapshot.forEach((childSnapshot) => {
-            scores.push(childSnapshot.val());
-        });
-
-        leaderboardList.innerHTML = '';
-        if (scores.length === 0) {
-            leaderboardList.innerHTML = '<li>目前還沒有速通紀錄</li>';
-            return;
-        }
-        
-        scores.forEach((item, index) => {
-            const li = document.createElement('li');
-            li.innerHTML = `<span>No.${index + 1} ${item.name}</span> <span>⏱️ ${item.score} 秒</span>`;
-            leaderboardList.appendChild(li);
-        });
-    });
+// 重新開始按鈕事件
+if (restartBtn) {
+    restartBtn.addEventListener('click', initGame);
 }
-
-restartBtn.addEventListener('click', initGame);
-
