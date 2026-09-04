@@ -28,14 +28,12 @@ const playerNameInput = document.getElementById('player-name-input');
 const submitScoreBtn = document.getElementById('submit-score-btn');
 
 // 網頁載入完成後啟動
+// 網頁載入完成後啟動
 window.onload = function() {
-    // 呼叫引入的 Firebase 初始化功能
-    if (typeof initFirebase === 'function') {
-        initFirebase();
-    }
-    // 初始化 9x9 棋盤
+    // 💡 修正：移除 initFirebase() 的呼叫，直接初始化棋盤即可
     initGame();
 };
+
 
 function initGame() {
     board = [];
