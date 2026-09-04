@@ -1,4 +1,4 @@
-// Firebase 配置與初始化
+// ⚠️ 這是你原本完全正確、可以直接使用的 Firebase 設定值
 const firebaseConfig = {
   apiKey: "AIzaSyA92tY9X4za5ScTXgoVyfApy34aPb-m9sg",
   authDomain: "://firebaseapp.com",
@@ -12,23 +12,19 @@ const firebaseConfig = {
 
 let database = null;
 
-// 初始化 Firebase 模組
-function initFirebase() {
-    const leaderboardList = document.getElementById('leaderboard-list');
-    if (typeof firebase !== 'undefined') {
-        firebase.initializeApp(firebaseConfig);
-        database = firebase.database();
-        startLeaderboardListener(); // 啟動雲端排行榜即時監聽
-        console.log("Firebase 雲端初始化成功！");
-    } else {
-        console.error("Firebase 套件未成功載入，將切換為單機無排行模式。");
-        if (leaderboardList) {
-            leaderboardList.innerHTML = '<li>⚠️ 雲端連線失敗，目前為單機模式</li>';
-        }
-    }
+// 💡 修正：跟昨天一樣，檔案一載入就在全域立刻初始化，絕對不包在 function 裡面！
+if (typeof firebase !== 'undefined') {
+    firebase.initializeApp(firebaseConfig);
+    database = firebase.database();
+    console.log("Firebase 雲端初始化成功！");
+    
+    // 檔案載入時就立刻啟動雲端排行榜監聽
+    startLeaderboardListener();
+} else {
+    console.error("Firebase 套件未成功載入。");
 }
 
-// 啟動雲端排行榜即時監聽
+// 雲端排行榜即時監聽
 function startLeaderboardListener() {
     if (!database) return;
     const leaderboardList = document.getElementById('leaderboard-list');
@@ -55,7 +51,7 @@ function startLeaderboardListener() {
     });
 }
 
-// 上傳分數函式
+// 上傳分數函式（供 game.js 呼叫）
 function uploadScore(name, secondsElapsed, callback) {
     if (!database) return;
     
